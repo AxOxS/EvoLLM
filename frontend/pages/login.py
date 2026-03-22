@@ -25,22 +25,22 @@ def login_page():
 
         # Card
         with ui.card().classes("auth-card items-center"):
-            ui.label("Prisijungti").style(
+            ui.label("Sign In").style(
                 f"color: {TEXT_PRIMARY}; font-size: 24px; font-weight: 700; "
                 f"margin-bottom: 4px;"
             )
-            ui.label("Iveskite savo duomenis").style(
+            ui.label("Enter your credentials").style(
                 f"color: {TEXT_SECONDARY}; font-size: 14px; margin-bottom: 20px;"
             )
 
             email = (
-                ui.input(label="El. pastas")
+                ui.input(label="Email")
                 .props("outlined dense dark")
                 .classes("w-full")
                 .style(f"color: {TEXT_PRIMARY};")
             )
             password = (
-                ui.input(label="Slaptazodis", password=True, password_toggle_button=True)
+                ui.input(label="Password", password=True, password_toggle_button=True)
                 .props("outlined dense dark")
                 .classes("w-full")
                 .style(f"color: {TEXT_PRIMARY};")
@@ -60,16 +60,16 @@ def login_page():
                 else:
                     error_label.set_text(result["error"])
 
-            ui.button("Prisijungti", on_click=handle_login).props(
+            ui.button("Sign In", on_click=handle_login).props(
                 "unelevated rounded"
             ).classes("w-full").style(
                 f"background: {ACCENT}; color: white; margin-top: 8px; height: 44px;"
             )
 
             with ui.row().classes("items-center gap-1 q-mt-md"):
-                ui.label("Neturite paskyros?").style(
+                ui.label("Don't have an account?").style(
                     f"color: {TEXT_SECONDARY}; font-size: 13px;"
                 )
-                ui.link("Registruotis", "/register").style(
+                ui.link("Register", "/register").style(
                     f"color: {ACCENT}; font-size: 13px; font-weight: 600;"
                 )

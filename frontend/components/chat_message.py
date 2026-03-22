@@ -36,7 +36,7 @@ def render_assistant_message(text: str, agent_runs: list | None = None):
 
 def _render_agent_logs(agent_runs: list):
     """Render expandable agent log section."""
-    with ui.expansion("Agentu logai", icon="visibility").classes("w-full").style(
+    with ui.expansion("Agent Logs", icon="visibility").classes("w-full").style(
         "margin-top: 12px; font-size: 13px;"
     ):
         for run in agent_runs:

@@ -40,13 +40,13 @@ def create_header(on_logout_click=None, drawer=None):
 
             # RAG page link
             ui.button(
-                "RAG Dokumentai",
+                "RAG Documents",
                 icon="folder_open",
                 on_click=lambda: ui.navigate.to("/rag"),
             ).props("flat dense").classes("header-btn")
 
             ui.button(
-                "Atsijungti",
+                "Logout",
                 icon="logout",
                 on_click=on_logout_click,
             ).props("flat dense").classes("header-btn")

@@ -25,28 +25,28 @@ def register_page():
 
         # Card
         with ui.card().classes("auth-card items-center"):
-            ui.label("Registracija").style(
+            ui.label("Create Account").style(
                 f"color: {TEXT_PRIMARY}; font-size: 24px; font-weight: 700; "
                 f"margin-bottom: 4px;"
             )
-            ui.label("Sukurkite nauja paskyra").style(
+            ui.label("Register a new account").style(
                 f"color: {TEXT_SECONDARY}; font-size: 14px; margin-bottom: 20px;"
             )
 
             email = (
-                ui.input(label="El. pastas")
+                ui.input(label="Email")
                 .props("outlined dense dark")
                 .classes("w-full")
                 .style(f"color: {TEXT_PRIMARY};")
             )
             password = (
-                ui.input(label="Slaptazodis", password=True, password_toggle_button=True)
+                ui.input(label="Password", password=True, password_toggle_button=True)
                 .props("outlined dense dark")
                 .classes("w-full")
                 .style(f"color: {TEXT_PRIMARY};")
             )
             password2 = (
-                ui.input(label="Pakartokite slaptazodi", password=True, password_toggle_button=True)
+                ui.input(label="Confirm password", password=True, password_toggle_button=True)
                 .props("outlined dense dark")
                 .classes("w-full")
                 .style(f"color: {TEXT_PRIMARY};")
@@ -63,7 +63,7 @@ def register_page():
                 error_label.set_text("")
                 success_label.set_text("")
                 if password.value != password2.value:
-                    error_label.set_text("Slaptazodziai nesutampa")
+                    error_label.set_text("Passwords do not match")
                     return
                 result = await mock_api.register(email.value, password.value)
                 if result["ok"]:
@@ -72,16 +72,16 @@ def register_page():
                 else:
                     error_label.set_text(result["error"])
 
-            ui.button("Registruotis", on_click=handle_register).props(
+            ui.button("Register", on_click=handle_register).props(
                 "unelevated rounded"
             ).classes("w-full").style(
                 f"background: {ACCENT}; color: white; margin-top: 8px; height: 44px;"
             )
 
             with ui.row().classes("items-center gap-1 q-mt-md"):
-                ui.label("Jau turite paskyra?").style(
+                ui.label("Already have an account?").style(
                     f"color: {TEXT_SECONDARY}; font-size: 13px;"
                 )
-                ui.link("Prisijungti", "/login").style(
+                ui.link("Sign In", "/login").style(
                     f"color: {ACCENT}; font-size: 13px; font-weight: 600;"
                 )

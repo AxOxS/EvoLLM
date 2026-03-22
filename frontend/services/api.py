@@ -33,8 +33,8 @@ class API:
                 json={"username": username, "password": password},
             )
             if r.status_code == 200:
-                return {"ok": True, "message": "Registracija sėkminga!"}
-            return {"ok": False, "error": r.json().get("detail", "Klaida")}
+                return {"ok": True, "message": "Registration successful!"}
+            return {"ok": False, "error": r.json().get("detail", "Error")}
 
     async def login(self, username: str, password: str) -> dict[str, Any]:
         async with httpx.AsyncClient() as client:
@@ -46,7 +46,7 @@ class API:
                 data = r.json()
                 self._token = data["token"]
                 return {"ok": True, "token": data["token"], "username": username}
-            return {"ok": False, "error": r.json().get("detail", "Klaida")}
+            return {"ok": False, "error": r.json().get("detail", "Error")}
 
     async def submit_task(
         self,
@@ -86,8 +86,8 @@ class API:
                 headers={"Authorization": f"Bearer {self._token}"} if self._token else {},
             )
             if r.status_code == 200:
-                return {"ok": True, "message": r.json().get("message", "Įkelta")}
-            return {"ok": False, "error": r.json().get("detail", "Klaida")}
+                return {"ok": True, "message": r.json().get("message", "Uploaded")}
+            return {"ok": False, "error": r.json().get("detail", "Error")}
 
 
 api = API()

@@ -45,7 +45,7 @@ async def rag_page():
             )
 
             ui.button(
-                "Atgal i chata",
+                "Back to Chat",
                 icon="chat",
                 on_click=lambda: ui.navigate.to("/"),
             ).props("flat dense").classes("header-btn")
@@ -59,13 +59,13 @@ async def rag_page():
                 ui.icon("storage").style(
                     f"font-size: 36px; color: {AGENT_COLORS['researcher']};"
                 )
-                ui.label("RAG Dokumentu valdymas").style(
+                ui.label("RAG Document Management").style(
                     f"font-size: 22px; font-weight: 700;"
                 )
 
             ui.label(
-                "Ikelsit dokumentus i vektorine ziniu baze (ChromaDB). "
-                "Sistema naudos juos atsakymams generuoti per Researcher agenta."
+                "Upload documents to the vector knowledge base (ChromaDB). "
+                "The system will use them to generate responses via the Researcher agent."
             ).style(
                 f"font-size: 14px; line-height: 1.6; margin: 8px 0 24px; opacity: 0.7;"
             )
@@ -80,14 +80,14 @@ async def rag_page():
                         ui.label(str(len(docs))).style(
                             f"color: {AGENT_COLORS['researcher']}; font-size: 28px; font-weight: 700;"
                         )
-                        ui.label("Dokumentu").style("font-size: 12px; opacity: 0.7;")
+                        ui.label("Documents").style("font-size: 12px; opacity: 0.7;")
 
                     total_kb = sum(d.size_kb for d in docs)
                     with ui.element("div").classes("rag-stat-card"):
                         ui.label(f"{total_kb:.0f}").style(
                             f"color: {ACCENT}; font-size: 28px; font-weight: 700;"
                         )
-                        ui.label("KB viso").style("font-size: 12px; opacity: 0.7;")
+                        ui.label("KB total").style("font-size: 12px; opacity: 0.7;")
 
             _refresh_stats()
 
@@ -96,10 +96,10 @@ async def rag_page():
                 ui.icon("cloud_upload").style(
                     f"font-size: 48px; color: {AGENT_COLORS['researcher']}; opacity: 0.7;"
                 )
-                ui.label("Nutempkite failus cia arba paspauskite mygtuka zemiau").style(
+                ui.label("Drag and drop files here or click the button below").style(
                     "font-size: 14px; margin: 12px 0 4px; opacity: 0.7;"
                 )
-                ui.label("Palaikomi formatai: PDF, TXT, DOCX").style(
+                ui.label("Supported formats: PDF, TXT, DOCX").style(
                     "font-size: 12px; margin-bottom: 16px; opacity: 0.5;"
                 )
 
@@ -108,7 +108,7 @@ async def rag_page():
                 )
 
                 async def handle_upload(e):
-                    upload_status.set_text("Ikeliama...")
+                    upload_status.set_text("Uploading...")
                     result = await mock_api.upload_document(e.name, e.content.read())
                     if result.get("ok"):
                         upload_status.set_text(result["message"])
@@ -118,17 +118,17 @@ async def rag_page():
                         _refresh_docs()
                         _refresh_stats()
                     else:
-                        upload_status.set_text(result.get("error", "Klaida"))
+                        upload_status.set_text(result.get("error", "Error"))
                         upload_status.style(f"color: {AGENT_COLORS['reviewer']};")
 
                 ui.upload(
-                    label="Pasirinkite faila",
+                    label="Choose file",
                     auto_upload=True,
                     on_upload=handle_upload,
                 ).props("accept='.pdf,.txt,.docx' flat bordered").classes("w-full")
 
             # ── Document list ───────────────────────────────────────
-            ui.label("Ikelti dokumentai").style(
+            ui.label("Uploaded Documents").style(
                 "font-size: 18px; font-weight: 700; margin-top: 32px;"
             )
 
@@ -138,7 +138,7 @@ async def rag_page():
                 doc_list_container.clear()
                 with doc_list_container:
                     if not docs:
-                        ui.label("Nera ikeltu dokumentu").style(
+                        ui.label("No documents uploaded yet").style(
                             "font-size: 14px; padding: 16px; opacity: 0.6;"
                         )
                     else:
@@ -157,7 +157,7 @@ async def rag_page():
                         ui.label(doc.filename).style(
                             "font-size: 14px; font-weight: 600;"
                         )
-                        ui.label(f"{doc.size_kb} KB  ·  Ikeltas: {doc.uploaded_at}").style(
+                        ui.label(f"{doc.size_kb} KB  ·  Uploaded: {doc.uploaded_at}").style(
                             "font-size: 12px; opacity: 0.6;"
                         )
 

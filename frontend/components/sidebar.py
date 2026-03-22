@@ -18,9 +18,9 @@ def create_sidebar(on_new_task=None):
     )
     with drawer:
         # New task button
-        with ui.column().classes("w-full q-pa-md"):
+        with ui.column().classes("w-full items-center").style("padding: 16px;"):
             ui.button(
-                "Nauja uzduotis",
+                "New Task",
                 icon="add",
                 on_click=on_new_task,
             ).props("unelevated rounded").classes("w-full sidebar-new-btn")
@@ -43,13 +43,13 @@ def populate_sidebar(
     """Fill the sidebar content container with task items."""
     container.clear()
     with container:
-        ui.label("Uzduociu istorija").style(
+        ui.label("Task History").style(
             "font-size: 12px; text-transform: uppercase; letter-spacing: 1px; "
             "padding: 4px 10px; opacity: 0.6;"
         )
 
         if not tasks:
-            ui.label("Dar nera uzduociu").style(
+            ui.label("No tasks yet").style(
                 "font-size: 13px; padding: 10px; opacity: 0.6;"
             )
         else:

@@ -466,14 +466,14 @@ function initCopyButtons() {
         header.appendChild(langSpan);
         var btn = document.createElement('button');
         btn.className = 'code-copy-btn';
-        btn.innerHTML = '<span>Kopijuoti</span>';
+        btn.innerHTML = '<span>Copy</span>';
         btn.onclick = function() {
             var text = code ? code.textContent : pre.textContent;
             navigator.clipboard.writeText(text).then(function() {
-                btn.innerHTML = '<span>Nukopijuota!</span>';
+                btn.innerHTML = '<span>Copied!</span>';
                 btn.classList.add('copied');
                 setTimeout(function() {
-                    btn.innerHTML = '<span>Kopijuoti</span>';
+                    btn.innerHTML = '<span>Copy</span>';
                     btn.classList.remove('copied');
                 }, 2000);
             });

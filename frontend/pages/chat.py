@@ -175,12 +175,12 @@ def _render_welcome():
         "gap: 20px; padding: 40px 16px 20px; width: 100%;"
     ):
         ui.image("/static/images/logo.svg").style("height: 56px; width: auto; opacity: 0.9;")
-        ui.label("Sveiki! Kuo galiu padeti?").style(
+        ui.label("Hello! How can I help you?").style(
             "font-size: 24px; font-weight: 700; margin-top: 4px;"
         )
         ui.label(
-            "EvoLLM - tai daugia-agentine AI sistema, kuri analizuoja, tiria, "
-            "generuoja ir tikrina jusu uzduotis naudodama 4 specializuotus agentus."
+            "EvoLLM is a multi-agent AI system that analyzes, researches, "
+            "generates and reviews your tasks using 4 specialized agents."
         ).style(
             "font-size: 15px; text-align: center; "
             "max-width: 600px; line-height: 1.7; opacity: 0.7;"
@@ -189,16 +189,16 @@ def _render_welcome():
         # Agent cards with SVG images
         agents_info = [
             ("/static/images/planner-agent.svg", "Planner",
-             "Analizuoja uzduoti ir suskaido ja i sub-uzduotis strukturizuotu formatu.",
+             "Analyzes the task and decomposes it into structured sub-tasks.",
              AGENT_COLORS["planner"]),
             ("/static/images/researcher-agent.svg", "Researcher",
-             "Iesko informacijos RAG ziniu bazeje ir internete (Tavily/SerpAPI).",
+             "Searches for information in the RAG knowledge base and web (Tavily/SerpAPI).",
              AGENT_COLORS["researcher"]),
             ("/static/images/coder-agent.svg", "Coder",
-             "Generuoja koda arba tekstini atsakyma pagal surinkta informacija.",
+             "Generates code or text responses based on collected information.",
              AGENT_COLORS["coder"]),
             ("/static/images/reviewer-agent.svg", "Reviewer",
-             "Tikrina rezultato kokybe, logika ir koda. Gali grazinti pataisymui.",
+             "Verifies result quality, logic and code. Can return for revision.",
              AGENT_COLORS["reviewer"]),
         ]
 
@@ -218,21 +218,21 @@ def _render_welcome():
         # Collapsible info panel (interactive element #3)
         with ui.row().classes("items-center gap-1"):
             ui.button(
-                "Kaip veikia sistema?",
+                "How does the system work?",
                 on_click=lambda: ui.run_javascript("toggleInfoPanel()"),
             ).props("flat rounded dense").style(f"color: {ACCENT}; font-size: 13px;")
             ui.icon("expand_more").props('id=info-toggle-icon').style(f"color: {ACCENT};")
 
         with ui.element("div").classes("info-panel collapsed").props('id=info-panel'):
-            ui.label("Kaip veikia EvoLLM?").style(
+            ui.label("How does EvoLLM work?").style(
                 "font-size: 18px; font-weight: 700; margin-bottom: 12px;"
             )
             steps = [
-                ("1", "Uzduoties pateikimas", "Vartotojas iveda tekstine uzduoti ir pasirenka ar naudoti RAG ziniu baze ir/arba interneto paieska.", AGENT_COLORS["planner"]),
-                ("2", "Planavimas (Planner)", "Planner agentas analizuoja uzduoti ir suskaido ja i strukturizuotas sub-uzduotis JSON formatu.", AGENT_COLORS["planner"]),
-                ("3", "Tyrimas (Researcher)", "Researcher iesko informacijos ChromaDB vektorineje duomenu bazeje. Jei ijungta - naudoja ir Tavily/SerpAPI interneto paieska.", AGENT_COLORS["researcher"]),
-                ("4", "Generavimas (Coder)", "Coder agentas generuoja koda arba tekstini atsakyma pagal surinkta informacija.", AGENT_COLORS["coder"]),
-                ("5", "Perziura (Reviewer)", "Reviewer tikrina rezultata: ar logika teisinga, ar kodas veikia. Gali grazinti Coder agentui pataisyti (iki 2 kartu).", AGENT_COLORS["reviewer"]),
+                ("1", "Task Submission", "The user enters a text task and chooses whether to use the RAG knowledge base and/or web search.", AGENT_COLORS["planner"]),
+                ("2", "Planning (Planner)", "The Planner agent analyzes the task and decomposes it into structured sub-tasks in JSON format.", AGENT_COLORS["planner"]),
+                ("3", "Research (Researcher)", "The Researcher searches for information in the ChromaDB vector database. If enabled, it also uses Tavily/SerpAPI web search.", AGENT_COLORS["researcher"]),
+                ("4", "Generation (Coder)", "The Coder agent generates code or a text response based on collected information.", AGENT_COLORS["coder"]),
+                ("5", "Review (Reviewer)", "The Reviewer checks the result: whether the logic is correct and the code works. Can return to Coder for fixes (up to 2 times).", AGENT_COLORS["reviewer"]),
             ]
             for num, title, desc, color in steps:
                 with ui.row().classes("items-start gap-3 no-wrap").style("margin-bottom: 14px;"):
@@ -249,8 +249,8 @@ def _render_welcome():
             ui.separator().style(f"background: {BG_SURFACE}; margin: 10px 0;")
             with ui.row().classes("gap-6 flex-wrap"):
                 for tech, detail in [
-                    ("Ollama", "Lokalus LLM (llama3, mistral)"),
-                    ("ChromaDB", "Vektorine RAG duomenu baze"),
+                    ("Ollama", "Local LLM (llama3, mistral)"),
+                    ("ChromaDB", "Vector RAG database"),
                     ("FastAPI", "Backend REST API"),
                     ("NiceGUI", "Frontend UI framework"),
                 ]:
@@ -261,10 +261,10 @@ def _render_welcome():
         # Feature hints
         with ui.row().classes("gap-4 justify-center").style("flex-wrap: wrap;"):
             for icon, label, color in [
-                ("storage", "RAG ziniu baze", "#27AE60"),
-                ("language", "Web paieska", "#4A90D9"),
-                ("smart_toy", "4 AI agentai", "#E67E22"),
-                ("history", "Uzduociu istorija", "#E74C3C"),
+                ("storage", "RAG Knowledge Base", "#27AE60"),
+                ("language", "Web Search", "#4A90D9"),
+                ("smart_toy", "4 AI Agents", "#E67E22"),
+                ("history", "Task History", "#E74C3C"),
             ]:
                 with ui.element("div").style(
                     f"background: {color}12; border: 1px solid {color}25; "

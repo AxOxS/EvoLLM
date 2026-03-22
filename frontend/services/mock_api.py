@@ -60,10 +60,10 @@ class RagDocument:
 SAMPLE_TASKS: list[Task] = [
     Task(
         id="sample-1",
-        prompt="Sukurk Python Flask REST API su CRUD operacijomis",
+        prompt="Create a Python Flask REST API with CRUD operations",
         created_at="2026-03-20 14:30",
         result=(
-            "Sukuriau Flask REST API su siais endpoint'ais:\n\n"
+            "Here is the Flask REST API with the following endpoints:\n\n"
             "```python\n"
             "from flask import Flask, jsonify, request\n\n"
             "app = Flask(__name__)\nitems = []\n\n"
@@ -75,36 +75,36 @@ SAMPLE_TASKS: list[Task] = [
             "    items.append(item)\n"
             "    return jsonify(item), 201\n"
             "```\n\n"
-            "API palaiko GET, POST, PUT ir DELETE operacijas."
+            "The API supports GET, POST, PUT and DELETE operations."
         ),
         agent_runs=[
-            AgentRun("planner", "Uzduotis suskaidyta i 3 sub-uzduotis: API struktura, CRUD endpoint'ai, testavimas."),
-            AgentRun("researcher", "Rasta informacija apie Flask best practices ir REST API dizaina."),
-            AgentRun("coder", "Sugeneruotas Flask API kodas su visomis CRUD operacijomis."),
-            AgentRun("reviewer", "Kodas patikrintas. Struktura tinkama, endpoint'ai atitinka REST standartus."),
+            AgentRun("planner", "Task decomposed into 3 sub-tasks: API structure, CRUD endpoints, testing."),
+            AgentRun("researcher", "Found information about Flask best practices and REST API design."),
+            AgentRun("coder", "Generated Flask API code with all CRUD operations."),
+            AgentRun("reviewer", "Code verified. Structure is correct, endpoints follow REST standards."),
         ],
     ),
     Task(
         id="sample-2",
-        prompt="Paaisink kas yra RAG (Retrieval-Augmented Generation)",
+        prompt="Explain what RAG (Retrieval-Augmented Generation) is",
         created_at="2026-03-21 09:15",
         result=(
-            "**RAG (Retrieval-Augmented Generation)** - tai metodas, kuris sujungia informacijos paieska "
-            "su teksto generavimu.\n\n"
-            "### Kaip veikia:\n"
-            "1. **Retrieval** - sistema iesko relevanciu dokumentu vektorineje duomenu bazeje\n"
-            "2. **Augmented** - rasti dokumentai pridedami prie LLM uzklauso kaip kontekstas\n"
-            "3. **Generation** - LLM generuoja atsakyma remdamasis pateiktu kontekstu\n\n"
-            "### Privalumai:\n"
-            "- Mazina haliucinacijas\n"
-            "- Leidzia naudoti naujausius duomenis\n"
-            "- Privatumas - duomenys lieka lokaliai"
+            "**RAG (Retrieval-Augmented Generation)** is a method that combines information retrieval "
+            "with text generation.\n\n"
+            "### How it works:\n"
+            "1. **Retrieval** - the system searches for relevant documents in a vector database\n"
+            "2. **Augmented** - found documents are added to the LLM query as context\n"
+            "3. **Generation** - the LLM generates an answer based on the provided context\n\n"
+            "### Advantages:\n"
+            "- Reduces hallucinations\n"
+            "- Allows using up-to-date data\n"
+            "- Privacy - data stays local"
         ),
         agent_runs=[
-            AgentRun("planner", "Uzduotis: pateikti RAG paasikinima. Sub-uzduotys: apibrezimas, veikimo principas, privalumai."),
-            AgentRun("researcher", "Surinkta informacija apie RAG is ziniu bazes dokumentu."),
-            AgentRun("coder", "Sugeneruotas strukturizuotas paaiskinimas su pavyzdziais."),
-            AgentRun("reviewer", "Paaiskinimas tikslus ir issamus. Patvirtinta."),
+            AgentRun("planner", "Task: provide RAG explanation. Sub-tasks: definition, working principle, advantages."),
+            AgentRun("researcher", "Collected information about RAG from knowledge base documents."),
+            AgentRun("coder", "Generated structured explanation with examples."),
+            AgentRun("reviewer", "Explanation is accurate and comprehensive. Approved."),
         ],
     ),
 ]
@@ -116,10 +116,10 @@ SAMPLE_RAG_DOCS: list[RagDocument] = [
 ]
 
 MOCK_AGENT_OUTPUTS = {
-    "planner": "Uzduotis isanalizuota ir suskaidyta i {n} sub-uzduotis.",
-    "researcher": "Surinkta reikalinga informacija is {source}.",
-    "coder": "Sugeneruotas atsakymas pagal surinkta informacija ir sub-uzduotis.",
-    "reviewer": "Rezultatas patikrintas. Kokybe tinkama. Patvirtinta.",
+    "planner": "Task analyzed and decomposed into {n} sub-tasks.",
+    "researcher": "Collected required information from {source}.",
+    "coder": "Generated response based on collected information and sub-tasks.",
+    "reviewer": "Result verified. Quality is acceptable. Approved.",
 }
 
 
@@ -139,15 +139,15 @@ class MockAPI:
         await asyncio.sleep(0.5)
         import re
         if not email or not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email):
-            return {"ok": False, "error": "Iveskite teisinga el. pasto adresa"}
+            return {"ok": False, "error": "Please enter a valid email address"}
         if len(password) < 4:
-            return {"ok": False, "error": "Slaptazodis per trumpas (min. 4 simboliai)"}
-        return {"ok": True, "message": "Registracija sekminga!"}
+            return {"ok": False, "error": "Password is too short (min. 4 characters)"}
+        return {"ok": True, "message": "Registration successful!"}
 
     async def login(self, email: str, password: str) -> dict[str, Any]:
         await asyncio.sleep(0.5)
         if not email or not password:
-            return {"ok": False, "error": "Iveskite el. pasta ir slaptazodi"}
+            return {"ok": False, "error": "Please enter email and password"}
         self._token = f"mock-jwt-{uuid.uuid4().hex[:12]}"
         return {"ok": True, "token": self._token, "email": email}
 
@@ -191,11 +191,11 @@ class MockAPI:
                 await _maybe_await(on_agent_start(agent))
             await asyncio.sleep(delay)
 
-            source = "ziniu bazes (RAG)" if rag_enabled else "konteksto"
+            source = "knowledge base (RAG)" if rag_enabled else "general context"
             if agent == "researcher" and web_search_enabled:
-                source = "ziniu bazes (RAG) ir interneto paieskos"
+                source = "knowledge base (RAG) and web search"
             elif agent == "researcher" and not rag_enabled:
-                source = "bendro konteksto"
+                source = "general context"
 
             n = random.randint(2, 4)
             output = MOCK_AGENT_OUTPUTS[agent].format(n=n, source=source)
@@ -237,7 +237,7 @@ class MockAPI:
         self._rag_docs.insert(0, doc)
         return {
             "ok": True,
-            "message": f"Dokumentas \"{filename}\" sekmingai ikeltas i RAG baze.",
+            "message": f"Document \"{filename}\" successfully uploaded to RAG database.",
         }
 
     async def get_rag_documents(self) -> list[RagDocument]:
@@ -260,22 +260,22 @@ async def _maybe_await(result):
 def _generate_mock_result(prompt: str, rag: bool, web: bool) -> str:
     sources = []
     if rag:
-        sources.append("RAG ziniu baze")
+        sources.append("RAG knowledge base")
     if web:
-        sources.append("interneto paieska")
-    source_text = ", ".join(sources) if sources else "bendrasis kontekstas"
+        sources.append("web search")
+    source_text = ", ".join(sources) if sources else "general context"
 
     return (
-        f"### Rezultatas\n\n"
-        f"Jusu uzduotis buvo isanalizuota ir ivykdyta naudojant: **{source_text}**.\n\n"
-        f"**Uzduotis:** {prompt}\n\n"
+        f"### Result\n\n"
+        f"Your task was analyzed and executed using: **{source_text}**.\n\n"
+        f"**Task:** {prompt}\n\n"
         f"---\n\n"
-        f"Atsakymas sugeneruotas 4 agentu pipeline:\n"
-        f"1. **Planner** - suskaide uzduoti i sub-uzduotis\n"
-        f"2. **Researcher** - surinko informacija\n"
-        f"3. **Coder** - sugeneravo atsakyma\n"
-        f"4. **Reviewer** - patikrino kokybe\n\n"
-        f"*Tai yra demonstracinis atsakymas. Prijungus backend, cia bus tikras LLM rezultatas.*"
+        f"Response generated by the 4-agent pipeline:\n"
+        f"1. **Planner** - decomposed the task into sub-tasks\n"
+        f"2. **Researcher** - gathered information\n"
+        f"3. **Coder** - generated the response\n"
+        f"4. **Reviewer** - verified quality\n\n"
+        f"*This is a demo response. Once the backend is connected, this will be a real LLM result.*"
     )
 
 

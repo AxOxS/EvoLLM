@@ -56,7 +56,7 @@ class ChatInput:
                         ui.icon("language").style(
                             f"font-size: 18px; color: {ACCENT};"
                         )
-                        ui.label("Web paieska").style(
+                        ui.label("Web Search").style(
                             "font-size: 13px; font-weight: 600;"
                         )
                         self._web_switch = ui.switch(value=False).props("dense color=blue")
@@ -64,7 +64,7 @@ class ChatInput:
                 # Input row – textarea fills all available width
                 with ui.element("div").classes("input-row"):
                     self._textarea = (
-                        ui.textarea(placeholder="Iveskite uzduoti...")
+                        ui.textarea(placeholder="Enter your task...")
                         .props("autogrow outlined dense")
                         .classes("chat-textarea")
                         .on("keydown.enter.prevent", self._handle_send)
