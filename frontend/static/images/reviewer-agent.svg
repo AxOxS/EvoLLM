@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <circle cx="60" cy="60" r="55" fill="#E74C3C" opacity="0.1"/>
+  <circle cx="60" cy="60" r="45" fill="#E74C3C" opacity="0.2"/>
+  <circle cx="60" cy="60" r="35" fill="#E74C3C"/>
+  <circle cx="60" cy="55" r="15" fill="none" stroke="white" stroke-width="2.5"/>
+  <polyline points="52,55 58,62 72,48" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="60" y="105" text-anchor="middle" font-size="12" fill="#E74C3C" font-weight="600" font-family="Arial">Reviewer</text>
+</svg>

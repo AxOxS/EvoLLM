@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <circle cx="60" cy="60" r="55" fill="#4A90D9" opacity="0.1"/>
+  <circle cx="60" cy="60" r="45" fill="#4A90D9" opacity="0.2"/>
+  <circle cx="60" cy="60" r="35" fill="#4A90D9"/>
+  <rect x="45" y="38" width="30" height="36" rx="3" fill="white" opacity="0.9"/>
+  <line x1="50" y1="48" x2="70" y2="48" stroke="#4A90D9" stroke-width="2"/>
+  <line x1="50" y1="55" x2="65" y2="55" stroke="#4A90D9" stroke-width="2"/>
+  <line x1="50" y1="62" x2="70" y2="62" stroke="#4A90D9" stroke-width="2"/>
+  <line x1="50" y1="69" x2="60" y2="69" stroke="#4A90D9" stroke-width="2"/>
+  <text x="60" y="105" text-anchor="middle" font-size="12" fill="#4A90D9" font-weight="600" font-family="Arial">Planner</text>
+</svg>

@@ -1,0 +1,5 @@
+.claude
+.nicegui
+*.docx
+*.pdf
+__pycache__
