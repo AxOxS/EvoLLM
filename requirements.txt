@@ -1,1 +1,17 @@
+# Frontend
 nicegui>=1.4
+
+# Backend
+fastapi>=0.110
+uvicorn[standard]
+sqlalchemy>=2.0
+psycopg2-binary
+python-jose[cryptography]
+passlib[bcrypt]
+python-dotenv
+pydantic-settings
+chromadb>=0.4
+httpx
+python-multipart
+pdfplumber
+python-docx

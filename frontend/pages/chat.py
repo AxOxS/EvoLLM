@@ -11,7 +11,7 @@ from frontend.styles.theme import (
     GLOBAL_CSS,
     INTERACTIVE_JS,
 )
-from frontend.services.mock_api import mock_api
+from frontend.services import get_api
 from frontend.components.header import create_header
 from frontend.components.sidebar import create_sidebar, populate_sidebar
 from frontend.components.chat_message import render_user_message, render_assistant_message
@@ -21,6 +21,7 @@ from frontend.components.chat_input import ChatInput
 
 async def chat_page():
     """Render the main chat interface."""
+    mock_api = get_api()
     ui.add_css(GLOBAL_CSS)
 
     # ── State ────────────────────────────────────────────────────────

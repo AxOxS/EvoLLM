@@ -13,11 +13,12 @@ from frontend.styles.theme import (
     GLOBAL_CSS,
     INTERACTIVE_JS,
 )
-from frontend.services.mock_api import mock_api
+from frontend.services import get_api
 
 
 async def rag_page():
     """Render the RAG document management page."""
+    mock_api = get_api()
     ui.add_css(GLOBAL_CSS)
 
     docs = await mock_api.get_rag_documents()

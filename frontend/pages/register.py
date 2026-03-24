@@ -10,11 +10,12 @@ from frontend.styles.theme import (
     ACCENT,
     GLOBAL_CSS,
 )
-from frontend.services.mock_api import mock_api
+from frontend.services import get_api
 
 
 def register_page():
     """Render the registration page."""
+    mock_api = get_api()
     ui.add_css(GLOBAL_CSS)
 
     with ui.column().classes("items-center justify-center").style(
