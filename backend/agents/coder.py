@@ -39,7 +39,12 @@ class CoderAgent(BaseAgent):
 
         result = await self.call_llm(llm_prompt, system_prompt=SYSTEM_PROMPT)
 
-        output = "Generated response based on collected information and sub-tasks."
+        # Summary for agent log (full result goes to task.result via context)
+        lines = [l for l in result.strip().splitlines() if l.strip()]
+        preview = "\n".join(lines[:5])
+        if len(lines) > 5:
+            preview += f"\n... ({len(lines)} lines total)"
+        output = f"Generated response ({len(result)} chars):\n{preview}"
         self.save_run(task_id, output, "done", db)
 
         context["coder_result"] = result

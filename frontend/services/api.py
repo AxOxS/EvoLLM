@@ -10,9 +10,11 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
+import os
+
 import httpx
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 AGENT_ORDER = ["planner", "researcher", "coder", "reviewer"]
 
@@ -118,7 +120,10 @@ class API:
                 headers=self._auth_headers,
             )
             if r.status_code != 200:
-                detail = r.json().get("detail", "Error creating task")
+                try:
+                    detail = r.json().get("detail", "Error creating task")
+                except Exception:
+                    detail = r.text or f"Error {r.status_code}"
                 raise RuntimeError(detail)
 
             data = r.json()
@@ -131,7 +136,7 @@ class API:
                     await result
 
         # Poll for status until done/failed
-        seen_agents: set[str] = set()
+        seen_run_count = 0
         while task.status in ("pending", "in_progress"):
             await asyncio.sleep(1.5)
 
@@ -146,19 +151,19 @@ class API:
                 status_data = r.json()
                 task.status = status_data["status"]
 
-                # Fire agent callbacks based on new agent_runs
-                for run_data in status_data.get("agent_runs", []):
+                # Fire agent callbacks for NEW runs (track by count)
+                all_runs = status_data.get("agent_runs", [])
+                for run_data in all_runs[seen_run_count:]:
                     agent = run_data["agent_name"]
-                    if agent not in seen_agents:
-                        seen_agents.add(agent)
-                        if on_agent_start:
-                            result = on_agent_start(agent)
-                            if asyncio.iscoroutine(result):
-                                await result
-                        if on_agent_done:
-                            result = on_agent_done(agent, run_data.get("output", ""))
-                            if asyncio.iscoroutine(result):
-                                await result
+                    if on_agent_start:
+                        result = on_agent_start(agent)
+                        if asyncio.iscoroutine(result):
+                            await result
+                    if on_agent_done:
+                        result = on_agent_done(agent, run_data.get("output", ""))
+                        if asyncio.iscoroutine(result):
+                            await result
+                seen_run_count = len(all_runs)
 
         # Fetch final task data
         async with httpx.AsyncClient(timeout=10.0) as client:

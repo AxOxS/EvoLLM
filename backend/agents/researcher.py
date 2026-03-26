@@ -62,7 +62,7 @@ class ResearcherAgent(BaseAgent):
         summary = await self.call_llm(llm_prompt, system_prompt=SYSTEM_PROMPT)
 
         source_str = ", ".join(sources) if sources else "general context"
-        output = f"Collected information from {source_str}."
+        output = f"Collected information from {source_str}.\n\nResearch brief:\n{summary}"
         self.save_run(task_id, output, "done", db)
 
         context["research"] = summary

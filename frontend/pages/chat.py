@@ -157,7 +157,7 @@ async def chat_page():
             if active_task_id == task.id:
                 progress.hide()
                 with messages_area:
-                    render_assistant_message(task.result, task.agent_runs[-4:])
+                    render_assistant_message(task.result, task.agent_runs)
                 _scroll_down()
 
             # Update sidebar (status changed from in_progress to done)

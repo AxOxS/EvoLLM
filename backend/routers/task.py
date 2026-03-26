@@ -38,7 +38,7 @@ async def create_task(
     db.refresh(task)
 
     # Launch pipeline in background so the endpoint returns immediately
-    bg.add(
+    bg.add_task(
         _run_pipeline_background,
         task.id,
         req.prompt,

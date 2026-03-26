@@ -54,7 +54,8 @@ class PlannerAgent(BaseAgent):
             subtasks_list = [prompt]
             output = f"Could not decompose into subtasks ({last_error}). Using task as single unit."
         else:
-            output = f"Task decomposed into {len(subtasks_list)} sub-tasks."
+            bullet_list = "\n".join(f"  {i+1}. {s}" for i, s in enumerate(subtasks_list))
+            output = f"Task decomposed into {len(subtasks_list)} sub-tasks:\n{bullet_list}"
 
         # Save subtasks to DB
         for i, desc in enumerate(subtasks_list):

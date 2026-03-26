@@ -51,9 +51,15 @@ class ReviewerAgent(BaseAgent):
             approved = parsed.get("approved", True)
             feedback = parsed.get("feedback", feedback)
         except (json.JSONDecodeError, AttributeError):
-            # If can't parse JSON, default to approved
-            approved = True
-            feedback = raw[:200] if raw else feedback
+            # If can't parse JSON, try to infer approval from text
+            feedback = raw if raw else feedback
+            raw_lower = raw.lower() if raw else ""
+            reject_signals = [
+                "not approve", "do not use", "reject", "not ready",
+                "significant issues", "critical issues", "needs significant",
+                "incomplete", "not complete", "fails", "broken",
+            ]
+            approved = not any(signal in raw_lower for signal in reject_signals)
 
         status = "approved" if approved else "rejected"
         output = f"Review: {status}. {feedback}"
