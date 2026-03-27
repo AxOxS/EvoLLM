@@ -3,3 +3,8 @@
 *.docx
 *.pdf
 __pycache__
+.env
+chroma_data/
+*.pyc
+.venv/
+venv/

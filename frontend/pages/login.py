@@ -10,11 +10,12 @@ from frontend.styles.theme import (
     ACCENT,
     GLOBAL_CSS,
 )
-from frontend.services.mock_api import mock_api
+from frontend.services import get_api
 
 
 def login_page():
     """Render the login page."""
+    mock_api = get_api()
     ui.add_css(GLOBAL_CSS)
 
     with ui.column().classes("items-center justify-center").style(
@@ -38,12 +39,14 @@ def login_page():
                 .props("outlined dense dark")
                 .classes("w-full")
                 .style(f"color: {TEXT_PRIMARY};")
+                .on("keydown.enter", lambda: password.run_method("focus"))
             )
             password = (
                 ui.input(label="Password", password=True, password_toggle_button=True)
                 .props("outlined dense dark")
                 .classes("w-full")
                 .style(f"color: {TEXT_PRIMARY};")
+                .on("keydown.enter", lambda: handle_login())
             )
 
             error_label = ui.label("").style(

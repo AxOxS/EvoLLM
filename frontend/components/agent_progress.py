@@ -52,7 +52,11 @@ class AgentProgress:
             self._container.set_visibility(False)
 
     def set_active(self, agent_name: str):
-        """Mark an agent as currently active."""
+        """Mark an agent as currently active.
+        If coder becomes active again (retry), reset coder+reviewer state."""
+        if agent_name == "coder" and "coder" in self._done_agents:
+            self._done_agents.discard("coder")
+            self._done_agents.discard("reviewer")
         self._current_agent = agent_name
         self._render()
 

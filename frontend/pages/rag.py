@@ -13,11 +13,12 @@ from frontend.styles.theme import (
     GLOBAL_CSS,
     INTERACTIVE_JS,
 )
-from frontend.services.mock_api import mock_api
+from frontend.services import get_api
 
 
 async def rag_page():
     """Render the RAG document management page."""
+    mock_api = get_api()
     ui.add_css(GLOBAL_CSS)
 
     docs = await mock_api.get_rag_documents()
@@ -48,6 +49,16 @@ async def rag_page():
                 "Back to Chat",
                 icon="chat",
                 on_click=lambda: ui.navigate.to("/"),
+            ).props("flat dense").classes("header-btn")
+
+            def _rag_logout():
+                app.storage.user.clear()
+                ui.navigate.to("/login")
+
+            ui.button(
+                "Logout",
+                icon="logout",
+                on_click=_rag_logout,
             ).props("flat dense").classes("header-btn")
 
     # ── Main content (centered, proportional) ───────────────────────
@@ -109,7 +120,25 @@ async def rag_page():
 
                 async def handle_upload(e):
                     upload_status.set_text("Uploading...")
-                    result = await mock_api.upload_document(e.name, e.content.read())
+                    try:
+                        if hasattr(e, 'file'):
+                            # NiceGUI >= 3.x: e.file.name, await e.file.read()
+                            filename = e.file.name
+                            data = await e.file.read()
+                        else:
+                            # NiceGUI 2.x: e.name, e.content (BinaryIO)
+                            filename = e.name
+                            e.content.seek(0)
+                            data = e.content.read()
+                    except Exception as ex:
+                        upload_status.set_text(f"Upload error: {ex}")
+                        upload_status.style(f"color: {AGENT_COLORS['reviewer']};")
+                        return
+                    if not data:
+                        upload_status.set_text("Error: file is empty")
+                        upload_status.style(f"color: {AGENT_COLORS['reviewer']};")
+                        return
+                    result = await mock_api.upload_document(filename, data)
                     if result.get("ok"):
                         upload_status.set_text(result["message"])
                         upload_status.style(f"color: {AGENT_COLORS['researcher']};")

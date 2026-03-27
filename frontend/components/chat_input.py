@@ -18,13 +18,15 @@ from frontend.styles.theme import (
 class ChatInput:
     """Bottom input area with toggles and send button – full width."""
 
-    def __init__(self, on_send=None):
+    def __init__(self, on_send=None, on_cancel=None):
         self._on_send = on_send
+        self._on_cancel = on_cancel
         self._textarea = None
         self._rag_switch = None
         self._web_switch = None
         self._send_btn = None
         self._disabled = False
+        self._processing = False
 
     @property
     def rag_enabled(self) -> bool:
@@ -71,7 +73,7 @@ class ChatInput:
                     )
 
                     self._send_btn = (
-                        ui.button(icon="send", on_click=self._handle_send)
+                        ui.button(icon="send", on_click=self._handle_btn_click)
                         .props("round unelevated")
                         .style(
                             f"background: {ACCENT}; color: white; "
@@ -81,22 +83,42 @@ class ChatInput:
 
         return self
 
-    def set_disabled(self, disabled: bool):
-        """Disable/enable the input area (FR15 – one task at a time)."""
-        self._disabled = disabled
-        if self._textarea:
-            self._textarea.set_enabled(not disabled)
+    def set_processing(self, processing: bool):
+        """Switch between send and cancel modes."""
+        self._processing = processing
         if self._send_btn:
-            self._send_btn.set_enabled(not disabled)
+            if processing:
+                self._send_btn._props["icon"] = "close"
+                self._send_btn.style(
+                    f"background: {AGENT_COLORS['reviewer']}; color: white; "
+                    f"min-width: 46px; min-height: 46px; flex-shrink: 0;"
+                )
+            else:
+                self._send_btn._props["icon"] = "send"
+                self._send_btn.style(
+                    f"background: {ACCENT}; color: white; "
+                    f"min-width: 46px; min-height: 46px; flex-shrink: 0;"
+                )
+            self._send_btn.update()
+        if self._textarea:
+            self._textarea.set_enabled(not processing)
 
     def clear(self):
         """Clear the text input."""
         if self._textarea:
             self._textarea.set_value("")
 
+    async def _handle_btn_click(self):
+        """Handle button click – send or cancel depending on state."""
+        if self._processing:
+            if self._on_cancel:
+                await self._on_cancel()
+        else:
+            await self._handle_send()
+
     async def _handle_send(self):
         """Handle send button click or Enter key."""
-        if self._disabled:
+        if self._processing:
             return
         text = self._textarea.value.strip() if self._textarea else ""
         if not text:

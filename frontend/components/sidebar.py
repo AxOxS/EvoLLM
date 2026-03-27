@@ -39,6 +39,7 @@ def populate_sidebar(
     tasks: list,
     active_task_id: str | None = None,
     on_task_click=None,
+    on_task_delete=None,
 ):
     """Fill the sidebar content container with task items."""
     container.clear()
@@ -54,19 +55,31 @@ def populate_sidebar(
             )
         else:
             for task in tasks:
-                _render_task_item(task, active_task_id, on_task_click)
+                _render_task_item(task, active_task_id, on_task_click, on_task_delete)
 
 
-def _render_task_item(task, active_task_id, on_task_click):
+def _render_task_item(task, active_task_id, on_task_click, on_task_delete):
     """Render a single task entry in the sidebar."""
     is_active = task.id == active_task_id
     css_class = "sidebar-item active" if is_active else "sidebar-item"
 
-    with ui.element("div").classes(css_class).on(
-        "click", lambda t=task: on_task_click(t) if on_task_click else None
+    with ui.element("div").classes(css_class).style(
+        "position: relative; width: 100%; box-sizing: border-box; padding-right: 28px;"
     ):
-        label_text = task.prompt[:40] + ("..." if len(task.prompt) > 40 else "")
-        ui.label(label_text).style("font-size: 14px;")
-        ui.label(task.created_at).style(
-            "font-size: 11px; margin-top: 2px; opacity: 0.6;"
-        )
+        with ui.element("div").style(
+            "cursor: pointer; width: 100%;"
+        ).on("click", lambda t=task: on_task_click(t) if on_task_click else None):
+            title = getattr(task, "title", "") or ""
+            label_text = title if title else (task.prompt[:40] + ("..." if len(task.prompt) > 40 else ""))
+            ui.label(label_text).style("font-size: 14px;")
+            ui.label(task.created_at).style(
+                "font-size: 11px; margin-top: 2px; opacity: 0.6;"
+            )
+        if on_task_delete:
+            ui.button(
+                icon="close",
+                on_click=lambda t=task: on_task_delete(t),
+            ).props("flat round dense size=xs").style(
+                "position: absolute; top: 50%; right: 4px; transform: translateY(-50%); "
+                "opacity: 0.3; min-width: 20px;"
+            )

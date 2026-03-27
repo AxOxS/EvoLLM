@@ -1,5 +1,6 @@
 """EvoLLM Frontend – NiceGUI application entry point."""
 
+import os
 from pathlib import Path
 
 from nicegui import ui, app

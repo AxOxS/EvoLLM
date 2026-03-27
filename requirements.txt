@@ -1,1 +1,18 @@
-nicegui>=1.4
+# Frontend
+nicegui>=2.0
+
+# Backend
+fastapi>=0.110
+uvicorn[standard]
+sqlalchemy>=2.0
+psycopg2-binary
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt==4.0.1
+python-dotenv
+pydantic-settings
+chromadb>=0.4
+httpx
+python-multipart
+pdfplumber
+python-docx

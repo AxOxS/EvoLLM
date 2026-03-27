@@ -11,23 +11,28 @@ from frontend.styles.theme import (
     GLOBAL_CSS,
     INTERACTIVE_JS,
 )
-from frontend.services.mock_api import mock_api
+from frontend.services import get_api
 from frontend.components.header import create_header
 from frontend.components.sidebar import create_sidebar, populate_sidebar
-from frontend.components.chat_message import render_user_message, render_assistant_message
+from frontend.components.chat_message import render_user_message, render_assistant_message, StreamingMessage
 from frontend.components.agent_progress import AgentProgress
 from frontend.components.chat_input import ChatInput
 
 
 async def chat_page():
     """Render the main chat interface."""
+    mock_api = get_api()
     ui.add_css(GLOBAL_CSS)
 
     # ── State ────────────────────────────────────────────────────────
-    task_history = await mock_api.get_task_history()
+    all_tasks = await mock_api.get_task_history()
+    # Sidebar shows only root tasks (first message in each conversation)
+    task_history = [t for t in all_tasks if not t.conversation_id or t.conversation_id == t.id]
     active_task_id = None
     processing_task_ids = set()  # tasks with active pipelines
     show_welcome = True
+    conversation_messages: list[dict] = []  # tracks current conversation for context
+    conversation_root_id: str | None = None  # first task ID in current conversation
 
     # ── Logout handler ───────────────────────────────────────────────
     def handle_logout():
@@ -35,37 +40,73 @@ async def chat_page():
         ui.navigate.to("/login")
 
     # ── Sidebar ──────────────────────────────────────────────────────
-    def handle_task_click(task):
-        nonlocal active_task_id, show_welcome
+    async def handle_task_click(task):
+        nonlocal active_task_id, show_welcome, conversation_messages, conversation_root_id
+        conv_id = task.conversation_id or task.id
         active_task_id = task.id
+        conversation_root_id = conv_id
         show_welcome = False
-        _render_task_view(task)
-        refresh_sidebar()
 
-    def _render_task_view(task):
-        """Render a task's messages and show/hide progress bar accordingly."""
+        # Load all tasks in this conversation to rebuild full chat history
+        conv_tasks = await mock_api.get_conversation(conv_id)
+        if not conv_tasks:
+            conv_tasks = [task]
+
+        # Rebuild conversation_messages and render all messages
+        conversation_messages = []
         messages_area.clear()
         with messages_area:
-            for msg in task.messages:
-                if msg.role == "user":
-                    render_user_message(msg.content)
-                else:
-                    render_assistant_message(msg.content, msg.agent_runs)
-        # Show progress bar only if THIS task is still processing
-        if task.id in processing_task_ids:
+            for t in conv_tasks:
+                for msg in t.messages:
+                    conversation_messages.append({"role": msg.role, "content": msg.content})
+                    if msg.role == "user":
+                        render_user_message(msg.content)
+                    else:
+                        render_assistant_message(msg.content, msg.agent_runs)
+
+        # Track last task id for progress display
+        if conv_tasks:
+            active_task_id = conv_tasks[-1].id
+
+        if active_task_id in processing_task_ids:
             progress.show()
         else:
             progress.hide()
         _scroll_down()
+        refresh_sidebar()
 
     def handle_new_task():
-        nonlocal active_task_id, show_welcome
+        nonlocal active_task_id, show_welcome, conversation_messages, conversation_root_id
         active_task_id = None
+        conversation_root_id = None
         show_welcome = True
+        conversation_messages = []
         messages_area.clear()
         with messages_area:
             _render_welcome()
         progress.hide()
+        refresh_sidebar()
+
+    async def handle_task_delete(task):
+        nonlocal active_task_id, task_history, show_welcome, conversation_messages, conversation_root_id
+        # Delete all tasks in the conversation
+        conv_id = task.conversation_id or task.id
+        conv_tasks = await mock_api.get_conversation(conv_id)
+        for t in conv_tasks:
+            await mock_api.delete_task(t.id)
+        if not conv_tasks:
+            await mock_api.delete_task(task.id)
+        all_tasks = await mock_api.get_task_history()
+        task_history = [t for t in all_tasks if not t.conversation_id or t.conversation_id == t.id]
+        if active_task_id == task.id or conversation_root_id == conv_id:
+            active_task_id = None
+            conversation_root_id = None
+            show_welcome = True
+            conversation_messages = []
+            messages_area.clear()
+            with messages_area:
+                _render_welcome()
+            progress.hide()
         refresh_sidebar()
 
     _drawer, sidebar_content = create_sidebar(on_new_task=handle_new_task)
@@ -74,11 +115,14 @@ async def chat_page():
     create_header(on_logout_click=handle_logout, drawer=_drawer)
 
     def refresh_sidebar():
+        # Use conversation_root_id for active highlighting (sidebar shows root tasks)
+        highlight_id = conversation_root_id or active_task_id
         populate_sidebar(
             sidebar_content,
             tasks=task_history,
-            active_task_id=active_task_id,
+            active_task_id=highlight_id,
             on_task_click=handle_task_click,
+            on_task_delete=handle_task_delete,
         )
 
     refresh_sidebar()
@@ -96,7 +140,7 @@ async def chat_page():
 
         # Input area
         async def handle_send(text: str):
-            nonlocal active_task_id, task_history, show_welcome
+            nonlocal active_task_id, task_history, show_welcome, conversation_messages
 
             chat_input.clear()
 
@@ -105,65 +149,131 @@ async def chat_page():
                 show_welcome = False
                 messages_area.clear()
 
-            # Add user message
+            # Add user message to view and conversation history
             with messages_area:
                 render_user_message(text)
             _scroll_down()
 
-            # Show progress for this chat
+            # Build chat_history from previous conversation (before this message)
+            history_for_api = list(conversation_messages)
+            # Add current user message to conversation tracking
+            conversation_messages.append({"role": "user", "content": text})
+
+            # Show progress and switch to cancel mode
             progress.show()
+            chat_input.set_processing(True)
 
             # Save current state
             rag = chat_input.rag_enabled
             web = chat_input.web_search_enabled
-            send_task_id = active_task_id  # the task we're sending FROM
+            is_follow_up = len(conversation_messages) > 1  # >1 because we just appended user msg
             # Mutable container so callbacks can read the task id
-            ctx = {"task_id": send_task_id}
+            ctx = {"task_id": active_task_id, "coder_runs": 0}
+            # Streaming message element (created on first partial result)
+            streaming_msg: StreamingMessage | None = None
 
             async def on_task_created(task):
                 """Called immediately when task is created (before pipeline)."""
-                nonlocal active_task_id, task_history
+                nonlocal active_task_id, task_history, conversation_root_id
                 ctx["task_id"] = task.id
                 active_task_id = task.id
                 processing_task_ids.add(task.id)
-                task_history = await mock_api.get_task_history()
-                refresh_sidebar()
+                if not is_follow_up:
+                    conversation_root_id = task.id
+                    all_tasks = await mock_api.get_task_history()
+                    task_history = [t for t in all_tasks if not t.conversation_id or t.conversation_id == t.id]
+                    refresh_sidebar()
 
             async def on_agent_start(agent_name: str):
-                # Only update progress bar if user is still viewing this task
+                nonlocal streaming_msg
                 if active_task_id == ctx["task_id"]:
                     progress.set_active(agent_name)
+                    # Detect coder retry (reviewer rejected previous attempt)
+                    if agent_name == "coder":
+                        ctx["coder_runs"] += 1
+                        if ctx["coder_runs"] > 1 and streaming_msg:
+                            streaming_msg.reset("*Revising response based on reviewer feedback...*")
 
             async def on_agent_done(agent_name: str, output: str):
                 if active_task_id == ctx["task_id"]:
                     progress.set_done(agent_name)
 
-            # Run pipeline
-            task = await mock_api.submit_task(
-                prompt=text,
-                rag_enabled=rag,
-                web_search_enabled=web,
-                on_agent_start=on_agent_start,
-                on_agent_done=on_agent_done,
-                existing_task_id=send_task_id,
-                on_task_created=on_task_created,
-            )
+            async def on_partial_result(partial_text: str):
+                nonlocal streaming_msg
+                if active_task_id != ctx["task_id"]:
+                    return
+                if streaming_msg is None:
+                    with messages_area:
+                        streaming_msg = StreamingMessage().create()
+                streaming_msg.update(partial_text)
+                _scroll_down()
 
-            # Pipeline done
+            # Run pipeline with chat history and conversation grouping
+            try:
+                task = await mock_api.submit_task(
+                    prompt=text,
+                    rag_enabled=rag,
+                    web_search_enabled=web,
+                    on_agent_start=on_agent_start,
+                    on_agent_done=on_agent_done,
+                    on_task_created=on_task_created,
+                    chat_history=history_for_api,
+                    conversation_id=conversation_root_id if is_follow_up else None,
+                    on_partial_result=on_partial_result,
+                )
+            except Exception as exc:
+                # submit_task failed (e.g. 409 conflict from stale task) –
+                # always restore the send button and show the error.
+                chat_input.set_processing(False)
+                progress.hide()
+                with messages_area:
+                    render_assistant_message(f"*Error: {exc}*", [])
+                _scroll_down()
+                return
+
+            # Pipeline done – restore send button
             processing_task_ids.discard(task.id)
+            chat_input.set_processing(False)
+
+            # Handle cancelled tasks
+            if task.status == "cancelled":
+                if active_task_id == task.id:
+                    progress.hide()
+                    if streaming_msg:
+                        streaming_msg.finalize("*Query cancelled.*", [])
+                    else:
+                        with messages_area:
+                            render_assistant_message("*Query cancelled.*", [])
+                    _scroll_down()
+                conversation_messages.append({"role": "assistant", "content": "Query cancelled."})
+                return
+
+            # Add assistant response to conversation tracking
+            conversation_messages.append({"role": "assistant", "content": task.result})
 
             # Only update the chat view if user is still looking at this task
             if active_task_id == task.id:
                 progress.hide()
-                with messages_area:
-                    render_assistant_message(task.result, task.agent_runs[-4:])
+                if streaming_msg:
+                    # Finalize the streaming message with agent logs
+                    streaming_msg.finalize(task.result, task.agent_runs)
+                else:
+                    with messages_area:
+                        render_assistant_message(task.result, task.agent_runs)
                 _scroll_down()
 
-            # Update sidebar (status changed from in_progress to done)
-            task_history = await mock_api.get_task_history()
+            # Refresh sidebar to pick up title and new conversations
+            all_tasks = await mock_api.get_task_history()
+            task_history = [t for t in all_tasks if not t.conversation_id or t.conversation_id == t.id]
             refresh_sidebar()
 
-        chat_input = ChatInput(on_send=handle_send).create()
+        async def handle_cancel():
+            """Cancel the currently running task."""
+            task_id = active_task_id
+            if task_id and task_id in processing_task_ids:
+                await mock_api.cancel_task(task_id)
+
+        chat_input = ChatInput(on_send=handle_send, on_cancel=handle_cancel).create()
 
     # ── Inject interactive JavaScript ────────────────────────────────
     ui.add_body_html(f"<script>{INTERACTIVE_JS}</script>")
