@@ -110,7 +110,25 @@ async def rag_page():
 
                 async def handle_upload(e):
                     upload_status.set_text("Uploading...")
-                    result = await mock_api.upload_document(e.name, e.content.read())
+                    try:
+                        if hasattr(e, 'file'):
+                            # NiceGUI >= 3.x: e.file.name, await e.file.read()
+                            filename = e.file.name
+                            data = await e.file.read()
+                        else:
+                            # NiceGUI 2.x: e.name, e.content (BinaryIO)
+                            filename = e.name
+                            e.content.seek(0)
+                            data = e.content.read()
+                    except Exception as ex:
+                        upload_status.set_text(f"Upload error: {ex}")
+                        upload_status.style(f"color: {AGENT_COLORS['reviewer']};")
+                        return
+                    if not data:
+                        upload_status.set_text("Error: file is empty")
+                        upload_status.style(f"color: {AGENT_COLORS['reviewer']};")
+                        return
+                    result = await mock_api.upload_document(filename, data)
                     if result.get("ok"):
                         upload_status.set_text(result["message"])
                         upload_status.style(f"color: {AGENT_COLORS['researcher']};")

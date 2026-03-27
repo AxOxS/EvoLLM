@@ -37,6 +37,9 @@ async def create_task(
     db.commit()
     db.refresh(task)
 
+    # Serialize chat history for background task
+    history = [{"role": m.role, "content": m.content} for m in req.chat_history]
+
     # Launch pipeline in background so the endpoint returns immediately
     bg.add_task(
         _run_pipeline_background,
@@ -45,6 +48,7 @@ async def create_task(
         req.rag_enabled,
         req.web_search_enabled,
         user.id,
+        history,
     )
 
     return task
@@ -56,13 +60,14 @@ def _run_pipeline_background(
     rag_enabled: bool,
     web_search_enabled: bool,
     user_id: str,
+    chat_history: list[dict] | None = None,
 ):
     """Wrapper that runs the async orchestrator in a fresh event loop + DB session."""
     from backend.services.orchestrator import run_pipeline
 
     db = SessionLocal()
     try:
-        asyncio.run(run_pipeline(task_id, prompt, rag_enabled, web_search_enabled, user_id, db))
+        asyncio.run(run_pipeline(task_id, prompt, rag_enabled, web_search_enabled, user_id, db, chat_history or []))
     finally:
         db.close()
 
@@ -85,6 +90,16 @@ def task_status(task_id: str, user: User = Depends(get_current_user), db: Sessio
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     db.refresh(task)
     return task
+
+
+@router.delete("/{task_id}")
+def delete_task(task_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    db.delete(task)
+    db.commit()
+    return {"ok": True}
 
 
 @router.get("/{task_id}", response_model=TaskResponse)

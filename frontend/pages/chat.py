@@ -29,6 +29,8 @@ async def chat_page():
     active_task_id = None
     processing_task_ids = set()  # tasks with active pipelines
     show_welcome = True
+    conversation_messages: list[dict] = []  # tracks current conversation for context
+    conversation_root_id: str | None = None  # first task ID in current conversation
 
     # ── Logout handler ───────────────────────────────────────────────
     def handle_logout():
@@ -37,9 +39,14 @@ async def chat_page():
 
     # ── Sidebar ──────────────────────────────────────────────────────
     def handle_task_click(task):
-        nonlocal active_task_id, show_welcome
+        nonlocal active_task_id, show_welcome, conversation_messages, conversation_root_id
         active_task_id = task.id
+        conversation_root_id = task.id
         show_welcome = False
+        # Rebuild conversation_messages from task messages
+        conversation_messages = [
+            {"role": msg.role, "content": msg.content} for msg in task.messages
+        ]
         _render_task_view(task)
         refresh_sidebar()
 
@@ -60,13 +67,30 @@ async def chat_page():
         _scroll_down()
 
     def handle_new_task():
-        nonlocal active_task_id, show_welcome
+        nonlocal active_task_id, show_welcome, conversation_messages, conversation_root_id
         active_task_id = None
+        conversation_root_id = None
         show_welcome = True
+        conversation_messages = []
         messages_area.clear()
         with messages_area:
             _render_welcome()
         progress.hide()
+        refresh_sidebar()
+
+    async def handle_task_delete(task):
+        nonlocal active_task_id, task_history, show_welcome, conversation_messages, conversation_root_id
+        await mock_api.delete_task(task.id)
+        task_history = await mock_api.get_task_history()
+        if active_task_id == task.id:
+            active_task_id = None
+            conversation_root_id = None
+            show_welcome = True
+            conversation_messages = []
+            messages_area.clear()
+            with messages_area:
+                _render_welcome()
+            progress.hide()
         refresh_sidebar()
 
     _drawer, sidebar_content = create_sidebar(on_new_task=handle_new_task)
@@ -80,6 +104,7 @@ async def chat_page():
             tasks=task_history,
             active_task_id=active_task_id,
             on_task_click=handle_task_click,
+            on_task_delete=handle_task_delete,
         )
 
     refresh_sidebar()
@@ -97,7 +122,7 @@ async def chat_page():
 
         # Input area
         async def handle_send(text: str):
-            nonlocal active_task_id, task_history, show_welcome
+            nonlocal active_task_id, task_history, show_welcome, conversation_messages
 
             chat_input.clear()
 
@@ -106,10 +131,15 @@ async def chat_page():
                 show_welcome = False
                 messages_area.clear()
 
-            # Add user message
+            # Add user message to view and conversation history
             with messages_area:
                 render_user_message(text)
             _scroll_down()
+
+            # Build chat_history from previous conversation (before this message)
+            history_for_api = list(conversation_messages)
+            # Add current user message to conversation tracking
+            conversation_messages.append({"role": "user", "content": text})
 
             # Show progress for this chat
             progress.show()
@@ -117,21 +147,22 @@ async def chat_page():
             # Save current state
             rag = chat_input.rag_enabled
             web = chat_input.web_search_enabled
-            send_task_id = active_task_id  # the task we're sending FROM
+            is_follow_up = len(conversation_messages) > 1  # >1 because we just appended user msg
             # Mutable container so callbacks can read the task id
-            ctx = {"task_id": send_task_id}
+            ctx = {"task_id": active_task_id}
 
             async def on_task_created(task):
                 """Called immediately when task is created (before pipeline)."""
-                nonlocal active_task_id, task_history
+                nonlocal active_task_id, task_history, conversation_root_id
                 ctx["task_id"] = task.id
                 active_task_id = task.id
                 processing_task_ids.add(task.id)
-                task_history = await mock_api.get_task_history()
-                refresh_sidebar()
+                if not is_follow_up:
+                    conversation_root_id = task.id
+                    task_history = await mock_api.get_task_history()
+                    refresh_sidebar()
 
             async def on_agent_start(agent_name: str):
-                # Only update progress bar if user is still viewing this task
                 if active_task_id == ctx["task_id"]:
                     progress.set_active(agent_name)
 
@@ -139,19 +170,22 @@ async def chat_page():
                 if active_task_id == ctx["task_id"]:
                     progress.set_done(agent_name)
 
-            # Run pipeline
+            # Run pipeline with chat history
             task = await mock_api.submit_task(
                 prompt=text,
                 rag_enabled=rag,
                 web_search_enabled=web,
                 on_agent_start=on_agent_start,
                 on_agent_done=on_agent_done,
-                existing_task_id=send_task_id,
                 on_task_created=on_task_created,
+                chat_history=history_for_api,
             )
 
             # Pipeline done
             processing_task_ids.discard(task.id)
+
+            # Add assistant response to conversation tracking
+            conversation_messages.append({"role": "assistant", "content": task.result})
 
             # Only update the chat view if user is still looking at this task
             if active_task_id == task.id:
@@ -160,9 +194,10 @@ async def chat_page():
                     render_assistant_message(task.result, task.agent_runs)
                 _scroll_down()
 
-            # Update sidebar (status changed from in_progress to done)
-            task_history = await mock_api.get_task_history()
-            refresh_sidebar()
+            # Update sidebar only for new conversations (not follow-ups)
+            if not is_follow_up:
+                task_history = await mock_api.get_task_history()
+                refresh_sidebar()
 
         chat_input = ChatInput(on_send=handle_send).create()
 

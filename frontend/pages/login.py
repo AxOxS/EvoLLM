@@ -39,12 +39,14 @@ def login_page():
                 .props("outlined dense dark")
                 .classes("w-full")
                 .style(f"color: {TEXT_PRIMARY};")
+                .on("keydown.enter", lambda: password.run_method("focus"))
             )
             password = (
                 ui.input(label="Password", password=True, password_toggle_button=True)
                 .props("outlined dense dark")
                 .classes("w-full")
                 .style(f"color: {TEXT_PRIMARY};")
+                .on("keydown.enter", lambda: handle_login())
             )
 
             error_label = ui.label("").style(

@@ -24,6 +24,7 @@ async def run_pipeline(
     web_search_enabled: bool,
     user_id: str,
     db: Session,
+    chat_history: list[dict] | None = None,
 ):
     """Execute the full 4-agent pipeline for a task.
 
@@ -44,6 +45,7 @@ async def run_pipeline(
         "rag_enabled": rag_enabled,
         "web_search_enabled": web_search_enabled,
         "user_id": user_id,
+        "chat_history": chat_history or [],
     }
 
     try:

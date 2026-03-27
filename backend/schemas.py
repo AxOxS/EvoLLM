@@ -27,10 +27,16 @@ class TokenResponse(BaseModel):
 
 # ── Task ──────────────────────────────────────────────────────────────
 
+class ChatMessage(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+
+
 class TaskCreate(BaseModel):
     prompt: str
     rag_enabled: bool = True
     web_search_enabled: bool = False
+    chat_history: list[ChatMessage] = []
 
 
 class SubtaskResponse(BaseModel):

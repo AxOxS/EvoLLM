@@ -39,18 +39,21 @@ def register_page():
                 .props("outlined dense dark")
                 .classes("w-full")
                 .style(f"color: {TEXT_PRIMARY};")
+                .on("keydown.enter", lambda: password.run_method("focus"))
             )
             password = (
                 ui.input(label="Password", password=True, password_toggle_button=True)
                 .props("outlined dense dark")
                 .classes("w-full")
                 .style(f"color: {TEXT_PRIMARY};")
+                .on("keydown.enter", lambda: password2.run_method("focus"))
             )
             password2 = (
                 ui.input(label="Confirm password", password=True, password_toggle_button=True)
                 .props("outlined dense dark")
                 .classes("w-full")
                 .style(f"color: {TEXT_PRIMARY};")
+                .on("keydown.enter", lambda: handle_register())
             )
 
             error_label = ui.label("").style(

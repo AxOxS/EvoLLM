@@ -25,7 +25,17 @@ class PlannerAgent(BaseAgent):
         task_id: str = context["task_id"]
         prompt: str = context["prompt"]
 
-        llm_prompt = f"Decompose this task into sub-tasks:\n\n{prompt}"
+        chat_history: list[dict] = context.get("chat_history", [])
+
+        llm_prompt = ""
+        if chat_history:
+            llm_prompt += "Previous conversation:\n"
+            for msg in chat_history:
+                role = msg.get("role", "user").capitalize()
+                llm_prompt += f"{role}: {msg.get('content', '')}\n"
+            llm_prompt += "\n"
+
+        llm_prompt += f"Decompose this task into sub-tasks:\n\n{prompt}"
 
         # Retry up to 2 times for valid JSON (UC-03)
         subtasks_list: list[str] = []

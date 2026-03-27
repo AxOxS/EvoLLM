@@ -107,16 +107,20 @@ class API:
         on_agent_done: Optional[Callable] = None,
         existing_task_id: Optional[str] = None,
         on_task_created: Optional[Callable] = None,
+        chat_history: Optional[list[dict]] = None,
     ) -> Task:
         """Submit a task and poll for progress until done."""
         async with httpx.AsyncClient(timeout=10.0) as client:
+            body: dict = {
+                "prompt": prompt,
+                "rag_enabled": rag_enabled,
+                "web_search_enabled": web_search_enabled,
+            }
+            if chat_history:
+                body["chat_history"] = chat_history
             r = await client.post(
                 f"{BASE_URL}/task",
-                json={
-                    "prompt": prompt,
-                    "rag_enabled": rag_enabled,
-                    "web_search_enabled": web_search_enabled,
-                },
+                json=body,
                 headers=self._auth_headers,
             )
             if r.status_code != 200:
@@ -185,6 +189,14 @@ class API:
             if r.status_code == 200:
                 return [_parse_task(t) for t in r.json()]
             return []
+
+    async def delete_task(self, task_id: str) -> dict[str, Any]:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.delete(
+                f"{BASE_URL}/task/{task_id}",
+                headers=self._auth_headers,
+            )
+            return {"ok": r.status_code == 200}
 
     # ── RAG ───────────────────────────────────────────────────────────
 

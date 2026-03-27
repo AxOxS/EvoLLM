@@ -6,14 +6,20 @@ from sqlalchemy.orm import Session
 
 from backend.agents.base import BaseAgent
 
-SYSTEM_PROMPT = """You are the Coder agent in a multi-agent AI system.
-Your job is to generate a high-quality response (code and/or text) based on:
-1. The original user task
+SYSTEM_PROMPT = """You are the Response Generator agent in a multi-agent AI system.
+Your job is to generate a high-quality response based on:
+1. The original user message (and any previous conversation context)
 2. The sub-tasks from the Planner
 3. The research brief from the Researcher
 
-If the task requires code, write clean, well-commented code with proper formatting.
-If the task requires a text answer, be thorough and well-structured.
+IMPORTANT: Match your response to what the user is actually asking for:
+- If the user asks a question, answer it directly in plain text.
+- If the user asks for code, write clean, well-commented code.
+- If the user asks for an explanation, explain clearly without generating code.
+- If this is a follow-up message (e.g. "why?", "explain more", "can you clarify?"),
+  respond in the context of the previous conversation.
+
+Do NOT generate code unless the user explicitly asks for it.
 Use markdown formatting for readability."""
 
 
@@ -27,7 +33,17 @@ class CoderAgent(BaseAgent):
         research: str = context.get("research", "")
         reviewer_feedback: str = context.get("reviewer_feedback", "")
 
-        llm_prompt = f"User task: {prompt}\n\n"
+        chat_history: list[dict] = context.get("chat_history", [])
+
+        llm_prompt = ""
+        if chat_history:
+            llm_prompt += "Previous conversation:\n"
+            for msg in chat_history:
+                role = msg.get("role", "user").capitalize()
+                llm_prompt += f"{role}: {msg.get('content', '')}\n"
+            llm_prompt += "\n"
+
+        llm_prompt += f"User task: {prompt}\n\n"
         if subtasks:
             llm_prompt += f"Sub-tasks:\n" + "\n".join(f"- {s}" for s in subtasks) + "\n\n"
         if research:
