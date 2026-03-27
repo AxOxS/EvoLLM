@@ -36,6 +36,7 @@ class Task:
     result: str = ""
     messages: list[Message] = field(default_factory=list)
     conversation_id: str = ""
+    title: str = ""
 
     def __post_init__(self):
         if not self.created_at:
@@ -167,6 +168,7 @@ class MockAPI:
         on_task_created: Optional[Callable] = None,
         chat_history: Optional[list[dict]] = None,
         conversation_id: Optional[str] = None,
+        on_partial_result: Optional[Callable] = None,
     ) -> Task:
         """Simulate the 4-agent pipeline."""
         task_id = str(uuid.uuid4())[:8]

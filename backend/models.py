@@ -47,6 +47,7 @@ class Task(Base):
     status = Column(String(20), default="pending")  # pending / in_progress / done / failed / cancelled
     result = Column(Text, default="")
     conversation_id = Column(String(12), nullable=True)  # root task id to group conversations
+    title = Column(String(255), nullable=True)  # AI-generated conversation title
     created_at = Column(DateTime(timezone=True), default=_utcnow)
 
     user = relationship("User", back_populates="tasks")

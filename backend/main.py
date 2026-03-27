@@ -15,14 +15,21 @@ async def lifespan(app: FastAPI):
     # Create all DB tables on startup
     Base.metadata.create_all(bind=engine)
 
-    # Migrate: add conversation_id column if missing (for existing DBs)
+    # Migrate: add missing columns for existing DBs
     inspector = inspect(engine)
     if inspector.has_table("tasks"):
         columns = [c["name"] for c in inspector.get_columns("tasks")]
-        if "conversation_id" not in columns:
-            with engine.connect() as conn:
+        with engine.connect() as conn:
+            if "conversation_id" not in columns:
                 conn.execute(text("ALTER TABLE tasks ADD COLUMN conversation_id VARCHAR(12)"))
-                conn.commit()
+            if "title" not in columns:
+                conn.execute(text("ALTER TABLE tasks ADD COLUMN title VARCHAR(255)"))
+            # Clean up stale tasks from previous runs (Docker restart etc.)
+            conn.execute(text(
+                "UPDATE tasks SET status = 'failed', result = 'Interrupted by server restart.' "
+                "WHERE status IN ('pending', 'in_progress')"
+            ))
+            conn.commit()
 
     yield
 

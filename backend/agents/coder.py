@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+import logging
+import time
+
 from sqlalchemy.orm import Session
 
 from backend.agents.base import BaseAgent
 from backend.config import settings
+from backend.models import Task
+
+logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """You are the Response Generator agent in a multi-agent AI system.
 Your job is to generate a high-quality response based on:
@@ -22,6 +28,9 @@ IMPORTANT: Match your response to what the user is actually asking for:
 
 Do NOT generate code unless the user explicitly asks for it.
 Use markdown formatting for readability."""
+
+# How often (seconds) to flush partial result to the DB during streaming
+FLUSH_INTERVAL = 0.4
 
 
 class CoderAgent(BaseAgent):
@@ -55,9 +64,27 @@ class CoderAgent(BaseAgent):
 
         llm_prompt += "Generate the response:"
 
-        result = await self.call_llm(llm_prompt, system_prompt=SYSTEM_PROMPT)
+        # Stream tokens and periodically flush to task.result so the frontend
+        # can show partial output while polling.
+        result = ""
+        last_flush = time.monotonic()
 
-        # Summary for agent log (full result goes to task.result via context)
+        try:
+            async for token in self.call_llm_stream(llm_prompt, system_prompt=SYSTEM_PROMPT):
+                result += token
+
+                now = time.monotonic()
+                if now - last_flush >= FLUSH_INTERVAL:
+                    self._flush_partial(task_id, result, db)
+                    last_flush = now
+        except Exception as e:
+            logger.warning("Streaming failed, falling back to non-streaming: %s", e)
+            result = await self.call_llm(llm_prompt, system_prompt=SYSTEM_PROMPT)
+
+        # Final flush to make sure complete result is in DB
+        self._flush_partial(task_id, result, db)
+
+        # Summary for agent log
         lines = [l for l in result.strip().splitlines() if l.strip()]
         preview = "\n".join(lines[:5])
         if len(lines) > 5:
@@ -67,3 +94,10 @@ class CoderAgent(BaseAgent):
 
         context["coder_result"] = result
         return output
+
+    def _flush_partial(self, task_id: str, text: str, db: Session):
+        """Write current accumulated text to task.result so polling can see it."""
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if task:
+            task.result = text
+            db.commit()

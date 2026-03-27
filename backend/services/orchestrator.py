@@ -16,6 +16,12 @@ logger = logging.getLogger(__name__)
 
 MAX_CODER_RETRIES = 2
 
+TITLE_SYSTEM_PROMPT = (
+    "Generate a very short title (3-6 words) for a conversation that starts with "
+    "the user message below. Return ONLY the title text, nothing else. "
+    "No quotes, no punctuation at the end, no explanation."
+)
+
 
 async def run_pipeline(
     task_id: str,
@@ -96,6 +102,10 @@ async def run_pipeline(
         task.status = "done"
         db.commit()
 
+        # Generate a conversation title for root tasks (conversation_id == task.id)
+        if task.conversation_id == task.id:
+            await _generate_title(task, db)
+
     except Exception as e:
         logger.exception("Pipeline failed for task %s: %s", task_id, e)
         task.status = "failed"
@@ -112,3 +122,19 @@ async def run_pipeline(
         )
         db.add(fail_run)
         db.commit()
+
+
+async def _generate_title(task: Task, db: Session):
+    """Generate a short title for the conversation using the small model."""
+    from backend.services.llm import generate
+
+    try:
+        raw = await generate(task.task_prompt, system_prompt=TITLE_SYSTEM_PROMPT)
+        # Clean up: take first line, strip quotes/whitespace
+        title = raw.strip().splitlines()[0].strip().strip('"').strip("'")
+        if len(title) > 80:
+            title = title[:77] + "..."
+        task.title = title
+        db.commit()
+    except Exception as e:
+        logger.warning("Title generation failed for task %s: %s", task.id, e)

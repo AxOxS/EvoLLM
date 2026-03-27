@@ -45,6 +45,7 @@ class Task:
     result: str = ""
     messages: list[Message] = field(default_factory=list)
     conversation_id: str = ""
+    title: str = ""
 
 
 @dataclass
@@ -110,6 +111,7 @@ class API:
         on_task_created: Optional[Callable] = None,
         chat_history: Optional[list[dict]] = None,
         conversation_id: Optional[str] = None,
+        on_partial_result: Optional[Callable] = None,
     ) -> Task:
         """Submit a task and poll for progress until done."""
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -143,10 +145,11 @@ class API:
                 if asyncio.iscoroutine(result):
                     await result
 
-        # Poll for status until done/failed
+        # Poll for status until done/failed/cancelled
         seen_run_count = 0
+        last_partial = ""
         while task.status in ("pending", "in_progress"):
-            await asyncio.sleep(1.5)
+            await asyncio.sleep(0.6)
 
             async with httpx.AsyncClient(timeout=10.0) as client:
                 r = await client.get(
@@ -172,6 +175,15 @@ class API:
                         if asyncio.iscoroutine(result):
                             await result
                 seen_run_count = len(all_runs)
+
+                # Stream partial result to UI as coder generates tokens
+                partial = status_data.get("result", "")
+                if partial and partial != last_partial and task.status == "in_progress":
+                    last_partial = partial
+                    if on_partial_result:
+                        result = on_partial_result(partial)
+                        if asyncio.iscoroutine(result):
+                            await result
 
         # Fetch final task data
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -273,6 +285,7 @@ def _parse_task(data: dict) -> Task:
         agent_runs=agent_runs,
         result=data.get("result", ""),
         conversation_id=data.get("conversation_id") or "",
+        title=data.get("title") or "",
     )
 
     # Build messages for the chat UI

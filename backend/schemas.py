@@ -66,6 +66,7 @@ class TaskResponse(BaseModel):
     result: str
     created_at: datetime
     conversation_id: Optional[str] = None
+    title: Optional[str] = None
     agent_runs: list[AgentRunResponse] = []
     subtasks: list[SubtaskResponse] = []
 
@@ -75,6 +76,7 @@ class TaskResponse(BaseModel):
 class TaskStatusResponse(BaseModel):
     id: str
     status: str
+    result: str = ""
     agent_runs: list[AgentRunResponse] = []
     subtasks: list[SubtaskResponse] = []
 

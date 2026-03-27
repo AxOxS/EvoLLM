@@ -14,7 +14,7 @@ from frontend.styles.theme import (
 from frontend.services import get_api
 from frontend.components.header import create_header
 from frontend.components.sidebar import create_sidebar, populate_sidebar
-from frontend.components.chat_message import render_user_message, render_assistant_message
+from frontend.components.chat_message import render_user_message, render_assistant_message, StreamingMessage
 from frontend.components.agent_progress import AgentProgress
 from frontend.components.chat_input import ChatInput
 
@@ -168,7 +168,9 @@ async def chat_page():
             web = chat_input.web_search_enabled
             is_follow_up = len(conversation_messages) > 1  # >1 because we just appended user msg
             # Mutable container so callbacks can read the task id
-            ctx = {"task_id": active_task_id}
+            ctx = {"task_id": active_task_id, "coder_runs": 0}
+            # Streaming message element (created on first partial result)
+            streaming_msg: StreamingMessage | None = None
 
             async def on_task_created(task):
                 """Called immediately when task is created (before pipeline)."""
@@ -183,24 +185,51 @@ async def chat_page():
                     refresh_sidebar()
 
             async def on_agent_start(agent_name: str):
+                nonlocal streaming_msg
                 if active_task_id == ctx["task_id"]:
                     progress.set_active(agent_name)
+                    # Detect coder retry (reviewer rejected previous attempt)
+                    if agent_name == "coder":
+                        ctx["coder_runs"] += 1
+                        if ctx["coder_runs"] > 1 and streaming_msg:
+                            streaming_msg.reset("*Revising response based on reviewer feedback...*")
 
             async def on_agent_done(agent_name: str, output: str):
                 if active_task_id == ctx["task_id"]:
                     progress.set_done(agent_name)
 
+            async def on_partial_result(partial_text: str):
+                nonlocal streaming_msg
+                if active_task_id != ctx["task_id"]:
+                    return
+                if streaming_msg is None:
+                    with messages_area:
+                        streaming_msg = StreamingMessage().create()
+                streaming_msg.update(partial_text)
+                _scroll_down()
+
             # Run pipeline with chat history and conversation grouping
-            task = await mock_api.submit_task(
-                prompt=text,
-                rag_enabled=rag,
-                web_search_enabled=web,
-                on_agent_start=on_agent_start,
-                on_agent_done=on_agent_done,
-                on_task_created=on_task_created,
-                chat_history=history_for_api,
-                conversation_id=conversation_root_id if is_follow_up else None,
-            )
+            try:
+                task = await mock_api.submit_task(
+                    prompt=text,
+                    rag_enabled=rag,
+                    web_search_enabled=web,
+                    on_agent_start=on_agent_start,
+                    on_agent_done=on_agent_done,
+                    on_task_created=on_task_created,
+                    chat_history=history_for_api,
+                    conversation_id=conversation_root_id if is_follow_up else None,
+                    on_partial_result=on_partial_result,
+                )
+            except Exception as exc:
+                # submit_task failed (e.g. 409 conflict from stale task) –
+                # always restore the send button and show the error.
+                chat_input.set_processing(False)
+                progress.hide()
+                with messages_area:
+                    render_assistant_message(f"*Error: {exc}*", [])
+                _scroll_down()
+                return
 
             # Pipeline done – restore send button
             processing_task_ids.discard(task.id)
@@ -210,8 +239,11 @@ async def chat_page():
             if task.status == "cancelled":
                 if active_task_id == task.id:
                     progress.hide()
-                    with messages_area:
-                        render_assistant_message("*Query cancelled.*", [])
+                    if streaming_msg:
+                        streaming_msg.finalize("*Query cancelled.*", [])
+                    else:
+                        with messages_area:
+                            render_assistant_message("*Query cancelled.*", [])
                     _scroll_down()
                 conversation_messages.append({"role": "assistant", "content": "Query cancelled."})
                 return
@@ -222,15 +254,18 @@ async def chat_page():
             # Only update the chat view if user is still looking at this task
             if active_task_id == task.id:
                 progress.hide()
-                with messages_area:
-                    render_assistant_message(task.result, task.agent_runs)
+                if streaming_msg:
+                    # Finalize the streaming message with agent logs
+                    streaming_msg.finalize(task.result, task.agent_runs)
+                else:
+                    with messages_area:
+                        render_assistant_message(task.result, task.agent_runs)
                 _scroll_down()
 
-            # Update sidebar only for new conversations (not follow-ups)
-            if not is_follow_up:
-                all_tasks = await mock_api.get_task_history()
-                task_history = [t for t in all_tasks if not t.conversation_id or t.conversation_id == t.id]
-                refresh_sidebar()
+            # Refresh sidebar to pick up title and new conversations
+            all_tasks = await mock_api.get_task_history()
+            task_history = [t for t in all_tasks if not t.conversation_id or t.conversation_id == t.id]
+            refresh_sidebar()
 
         async def handle_cancel():
             """Cancel the currently running task."""

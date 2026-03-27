@@ -69,7 +69,8 @@ def _render_task_item(task, active_task_id, on_task_click, on_task_delete):
         with ui.element("div").style(
             "cursor: pointer; width: 100%;"
         ).on("click", lambda t=task: on_task_click(t) if on_task_click else None):
-            label_text = task.prompt[:40] + ("..." if len(task.prompt) > 40 else "")
+            title = getattr(task, "title", "") or ""
+            label_text = title if title else (task.prompt[:40] + ("..." if len(task.prompt) > 40 else ""))
             ui.label(label_text).style("font-size: 14px;")
             ui.label(task.created_at).style(
                 "font-size: 11px; margin-top: 2px; opacity: 0.6;"
