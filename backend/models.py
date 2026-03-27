@@ -44,8 +44,9 @@ class Task(Base):
     id = Column(String(12), primary_key=True, default=_uuid)
     user_id = Column(String(12), ForeignKey("users.id"), nullable=False)
     task_prompt = Column(Text, nullable=False)
-    status = Column(String(20), default="pending")  # pending / in_progress / done / failed
+    status = Column(String(20), default="pending")  # pending / in_progress / done / failed / cancelled
     result = Column(Text, default="")
+    conversation_id = Column(String(12), nullable=True)  # root task id to group conversations
     created_at = Column(DateTime(timezone=True), default=_utcnow)
 
     user = relationship("User", back_populates="tasks")

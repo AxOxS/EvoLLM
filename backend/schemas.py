@@ -37,6 +37,7 @@ class TaskCreate(BaseModel):
     rag_enabled: bool = True
     web_search_enabled: bool = False
     chat_history: list[ChatMessage] = []
+    conversation_id: Optional[str] = None
 
 
 class SubtaskResponse(BaseModel):
@@ -64,6 +65,7 @@ class TaskResponse(BaseModel):
     status: str
     result: str
     created_at: datetime
+    conversation_id: Optional[str] = None
     agent_runs: list[AgentRunResponse] = []
     subtasks: list[SubtaskResponse] = []
 

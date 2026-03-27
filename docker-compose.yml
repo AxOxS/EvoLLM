@@ -41,8 +41,8 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/evollm
       OLLAMA_URL: http://ollama:11434
-      OLLAMA_MODEL: qwen3:0.6b
-      # OLLAMA_MODEL: qwen3.5:9b
+      OLLAMA_MODEL_SMALL: qwen3:0.6b
+      OLLAMA_MODEL_BIG: qwen3.5:9b
       CHROMADB_PATH: /app/chroma_data
     volumes:
       - chroma_data:/app/chroma_data

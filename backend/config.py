@@ -6,7 +6,8 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:5432/evollm"
     ollama_url: str = "http://localhost:11434"
-    ollama_model: str = "llama3"
+    ollama_model_small: str = "qwen3:0.6b"
+    ollama_model_big: str = "qwen3.5:9b"
     chromadb_path: str = "./chroma_data"
     jwt_secret: str = "change-me-in-production"
     jwt_expire_hours: int = 24

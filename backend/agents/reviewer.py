@@ -7,6 +7,7 @@ import json
 from sqlalchemy.orm import Session
 
 from backend.agents.base import BaseAgent
+from backend.config import settings
 
 SYSTEM_PROMPT = """You are the Reviewer agent in a multi-agent AI system.
 Your job is to review the Coder agent's output for quality, correctness, and completeness.
@@ -22,6 +23,7 @@ Be reasonable – approve outputs that adequately address the task, even if not 
 
 class ReviewerAgent(BaseAgent):
     name = "reviewer"
+    model = settings.ollama_model_big
 
     async def run(self, context: dict, db: Session) -> str:
         task_id: str = context["task_id"]

@@ -34,6 +34,9 @@ async def create_task(
 
     task = Task(user_id=user.id, task_prompt=req.prompt, status="pending")
     db.add(task)
+    db.flush()  # get the generated id before commit
+    # conversation_id: use provided value for follow-ups, or self-id for new conversations
+    task.conversation_id = req.conversation_id or task.id
     db.commit()
     db.refresh(task)
 
@@ -83,6 +86,18 @@ def task_history(user: User = Depends(get_current_user), db: Session = Depends(g
     return tasks
 
 
+@router.get("/conversation/{conversation_id}", response_model=list[TaskResponse])
+def get_conversation(conversation_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get all tasks in a conversation, ordered chronologically."""
+    tasks = (
+        db.query(Task)
+        .filter(Task.user_id == user.id, Task.conversation_id == conversation_id)
+        .order_by(Task.created_at.asc())
+        .all()
+    )
+    return tasks
+
+
 @router.get("/status/{task_id}", response_model=TaskStatusResponse)
 def task_status(task_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
@@ -99,6 +114,17 @@ def delete_task(task_id: str, user: User = Depends(get_current_user), db: Sessio
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     db.delete(task)
     db.commit()
+    return {"ok": True}
+
+
+@router.post("/{task_id}/cancel")
+def cancel_task(task_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    if task.status in ("pending", "in_progress"):
+        task.status = "cancelled"
+        db.commit()
     return {"ok": True}
 
 

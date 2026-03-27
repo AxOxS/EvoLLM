@@ -48,12 +48,21 @@ async def run_pipeline(
         "chat_history": chat_history or [],
     }
 
+    def _is_cancelled() -> bool:
+        """Check if the task has been cancelled by the user."""
+        db.refresh(task)
+        return task.status == "cancelled"
+
     try:
         # 1. Planner
+        if _is_cancelled():
+            return
         planner = PlannerAgent()
         await planner.run(context, db)
 
         # 2. Researcher
+        if _is_cancelled():
+            return
         researcher = ResearcherAgent()
         await researcher.run(context, db)
 
@@ -62,7 +71,12 @@ async def run_pipeline(
         reviewer = ReviewerAgent()
 
         for attempt in range(MAX_CODER_RETRIES + 1):
+            if _is_cancelled():
+                return
             await coder.run(context, db)
+
+            if _is_cancelled():
+                return
             await reviewer.run(context, db)
 
             if context.get("approved", True):
@@ -72,6 +86,10 @@ async def run_pipeline(
                 logger.info("Reviewer rejected (attempt %d), retrying Coder", attempt + 1)
             else:
                 logger.warning("Reviewer rejected after %d attempts, using last result", MAX_CODER_RETRIES)
+
+        # Check one final time before saving
+        if _is_cancelled():
+            return
 
         # Save final result
         task.result = context.get("coder_result", "")

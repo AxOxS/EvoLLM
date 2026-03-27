@@ -44,6 +44,7 @@ class Task:
     agent_runs: list[AgentRun] = field(default_factory=list)
     result: str = ""
     messages: list[Message] = field(default_factory=list)
+    conversation_id: str = ""
 
 
 @dataclass
@@ -108,6 +109,7 @@ class API:
         existing_task_id: Optional[str] = None,
         on_task_created: Optional[Callable] = None,
         chat_history: Optional[list[dict]] = None,
+        conversation_id: Optional[str] = None,
     ) -> Task:
         """Submit a task and poll for progress until done."""
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -118,6 +120,8 @@ class API:
             }
             if chat_history:
                 body["chat_history"] = chat_history
+            if conversation_id:
+                body["conversation_id"] = conversation_id
             r = await client.post(
                 f"{BASE_URL}/task",
                 json=body,
@@ -190,6 +194,25 @@ class API:
                 return [_parse_task(t) for t in r.json()]
             return []
 
+    async def get_conversation(self, conversation_id: str) -> list[Task]:
+        """Get all tasks in a conversation, ordered chronologically."""
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(
+                f"{BASE_URL}/task/conversation/{conversation_id}",
+                headers=self._auth_headers,
+            )
+            if r.status_code == 200:
+                return [_parse_task(r_data) for r_data in r.json()]
+            return []
+
+    async def cancel_task(self, task_id: str) -> dict[str, Any]:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.post(
+                f"{BASE_URL}/task/{task_id}/cancel",
+                headers=self._auth_headers,
+            )
+            return {"ok": r.status_code == 200}
+
     async def delete_task(self, task_id: str) -> dict[str, Any]:
         async with httpx.AsyncClient(timeout=10.0) as client:
             r = await client.delete(
@@ -249,6 +272,7 @@ def _parse_task(data: dict) -> Task:
         created_at=data.get("created_at", ""),
         agent_runs=agent_runs,
         result=data.get("result", ""),
+        conversation_id=data.get("conversation_id") or "",
     )
 
     # Build messages for the chat UI

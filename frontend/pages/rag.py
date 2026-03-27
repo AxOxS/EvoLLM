@@ -51,6 +51,16 @@ async def rag_page():
                 on_click=lambda: ui.navigate.to("/"),
             ).props("flat dense").classes("header-btn")
 
+            def _rag_logout():
+                app.storage.user.clear()
+                ui.navigate.to("/login")
+
+            ui.button(
+                "Logout",
+                icon="logout",
+                on_click=_rag_logout,
+            ).props("flat dense").classes("header-btn")
+
     # ── Main content (centered, proportional) ───────────────────────
     with ui.element("div").classes("rag-page-wrapper"):
         with ui.column().classes("rag-page"):

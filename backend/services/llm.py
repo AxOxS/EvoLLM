@@ -9,13 +9,13 @@ from backend.config import settings
 TIMEOUT = 120.0
 
 
-async def generate(prompt: str, system_prompt: str | None = None) -> str:
+async def generate(prompt: str, system_prompt: str | None = None, model: str | None = None) -> str:
     """Call Ollama POST /api/generate and return the full response text.
 
     Retries once on failure (NFR-06).
     """
     payload: dict = {
-        "model": settings.ollama_model,
+        "model": model or settings.ollama_model_small,
         "prompt": prompt,
         "stream": False,
     }

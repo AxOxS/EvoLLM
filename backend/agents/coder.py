@@ -5,6 +5,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from backend.agents.base import BaseAgent
+from backend.config import settings
 
 SYSTEM_PROMPT = """You are the Response Generator agent in a multi-agent AI system.
 Your job is to generate a high-quality response based on:
@@ -25,6 +26,7 @@ Use markdown formatting for readability."""
 
 class CoderAgent(BaseAgent):
     name = "coder"
+    model = settings.ollama_model_big
 
     async def run(self, context: dict, db: Session) -> str:
         task_id: str = context["task_id"]

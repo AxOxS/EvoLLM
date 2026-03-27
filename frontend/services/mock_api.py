@@ -35,10 +35,13 @@ class Task:
     agent_runs: list[AgentRun] = field(default_factory=list)
     result: str = ""
     messages: list[Message] = field(default_factory=list)
+    conversation_id: str = ""
 
     def __post_init__(self):
         if not self.created_at:
             self.created_at = datetime.now().strftime("%Y-%m-%d %H:%M")
+        if not self.conversation_id:
+            self.conversation_id = self.id
         # Build messages from prompt/result if not set
         if not self.messages and self.prompt:
             self.messages.append(Message(role="user", content=self.prompt))
@@ -162,21 +165,19 @@ class MockAPI:
         on_agent_done: Optional[Callable[[str, str], Any]] = None,
         existing_task_id: Optional[str] = None,
         on_task_created: Optional[Callable] = None,
+        chat_history: Optional[list[dict]] = None,
+        conversation_id: Optional[str] = None,
     ) -> Task:
-        """Simulate the 4-agent pipeline. If existing_task_id given, appends to that conversation."""
-        if existing_task_id:
-            task = self._find_task(existing_task_id)
-            if task:
-                task.messages.append(Message(role="user", content=prompt))
-            else:
-                task = Task(id=str(uuid.uuid4())[:8], prompt=prompt, status="in_progress")
-                task.messages = [Message(role="user", content=prompt)]
-                self._tasks.insert(0, task)
-        else:
-            task = Task(id=str(uuid.uuid4())[:8], prompt=prompt, status="in_progress")
-            task.messages = [Message(role="user", content=prompt)]
-            # Add to history immediately so sidebar shows it
-            self._tasks.insert(0, task)
+        """Simulate the 4-agent pipeline."""
+        task_id = str(uuid.uuid4())[:8]
+        task = Task(
+            id=task_id,
+            prompt=prompt,
+            status="in_progress",
+            conversation_id=conversation_id or task_id,
+        )
+        task.messages = [Message(role="user", content=prompt)]
+        self._tasks.insert(0, task)
 
         # Notify caller that task is created (for immediate sidebar update)
         if on_task_created:
@@ -218,6 +219,20 @@ class MockAPI:
             if t.id == task_id:
                 return t
         return None
+
+    async def get_conversation(self, conversation_id: str) -> list[Task]:
+        """Get all tasks in a conversation, oldest first."""
+        return list(reversed([t for t in self._tasks if t.conversation_id == conversation_id]))
+
+    async def cancel_task(self, task_id: str) -> dict[str, Any]:
+        task = self._find_task(task_id)
+        if task and task.status in ("pending", "in_progress"):
+            task.status = "cancelled"
+        return {"ok": True}
+
+    async def delete_task(self, task_id: str) -> dict[str, Any]:
+        self._tasks = [t for t in self._tasks if t.id != task_id]
+        return {"ok": True}
 
     async def get_task_history(self) -> list[Task]:
         await asyncio.sleep(0.1)
