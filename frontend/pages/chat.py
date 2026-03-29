@@ -1,5 +1,3 @@
-"""Main chat page – assembles all components into the ChatGPT-like layout."""
-
 from __future__ import annotations
 
 from nicegui import ui, app
