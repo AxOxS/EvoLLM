@@ -58,7 +58,7 @@ async def _rag():
 
 # ── Run ──────────────────────────────────────────────────────────────
 ui.run(
-    title="EvoLLM",
+    title="Solomon",
     port=8080,
     dark=True,
     storage_secret="evollm-dev-secret-change-me",

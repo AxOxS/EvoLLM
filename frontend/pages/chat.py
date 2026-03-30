@@ -287,7 +287,7 @@ def _render_welcome():
             "font-size: 24px; font-weight: 700; margin-top: 4px;"
         )
         ui.label(
-            "EvoLLM is a multi-agent AI system that analyzes, researches, "
+            "Solomon is a multi-agent AI system that analyzes, researches, "
             "generates and reviews your tasks using 4 specialized agents."
         ).style(
             "font-size: 15px; text-align: center; "
@@ -332,7 +332,7 @@ def _render_welcome():
             ui.icon("expand_more").props('id=info-toggle-icon').style(f"color: {ACCENT};")
 
         with ui.element("div").classes("info-panel collapsed").props('id=info-panel'):
-            ui.label("How does EvoLLM work?").style(
+            ui.label("How does Solomon work?").style(
                 "font-size: 18px; font-weight: 700; margin-bottom: 12px;"
             )
             steps = [
