@@ -1,4 +1,4 @@
-"""Left sidebar – task history list (ChatGPT-style)."""
+"""Left sidebar – task history list."""
 
 from __future__ import annotations
 

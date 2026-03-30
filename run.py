@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-"""EvoLLM Launcher – starts both backend (FastAPI) and frontend (NiceGUI).
-
-Usage:
-    python run.py              # Start both backend + frontend
-    python run.py --frontend   # Frontend only (uses mock API)
-    python run.py --backend    # Backend only
-"""
-
 import subprocess
 import sys
 import time

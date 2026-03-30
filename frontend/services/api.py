@@ -1,8 +1,4 @@
-"""Real API client – HTTP calls to FastAPI backend.
-
-Matches the same interface as mock_api.py so the frontend can
-swap between them without changes.
-"""
+#Real API client – HTTP calls to FastAPI backend.
 
 from __future__ import annotations
 

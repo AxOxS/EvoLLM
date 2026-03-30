@@ -14,7 +14,7 @@ from backend.agents.reviewer import ReviewerAgent
 
 logger = logging.getLogger(__name__)
 
-MAX_CODER_RETRIES = 2
+MAX_CODER_RETRIES = 5
 
 TITLE_SYSTEM_PROMPT = (
     "Generate a very short title (3-6 words) for a conversation that starts with "
